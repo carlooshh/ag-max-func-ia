@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { element } from 'protractor';
+import { stringify } from 'querystring';
 import { Method } from '../shared/method.enum';
 
 @Component({
@@ -16,7 +17,10 @@ export class AgComponent implements OnInit {
   method: number = Method.ROULETTE;
 
   binaryPopulation: string[] = [];
-  realPopulation: number[] = [];
+  realPopulation: any = {
+    x: [],
+    y: [],
+  };
   fx: number[] = [];
   totalFx: number = 0;
   scales: number[] = [];
@@ -38,6 +42,7 @@ export class AgComponent implements OnInit {
 
   runAg() {
     this.binaryPopulation = this.generateRamdomPop();
+    console.log(this.binaryPopulation);
 
     for (let index = 0; index < this.countGenerations; index++) {
       const resultRealPopulation = this.convertBinaryToReal(
@@ -82,32 +87,70 @@ export class AgComponent implements OnInit {
   }
 
   convertBinaryToReal(resultBinaryPopulation: string[]) {
+    const isEven = this.chromoSize % 2 == 0;
+    let until = 0;
+    if (isEven) {
+      until = this.chromoSize / 2;
+    } else {
+      until = (this.chromoSize - 1) / 2;
+    }
+
+    let contX = 0;
     let sum: number = 0;
     resultBinaryPopulation.forEach((element) => {
       for (let index = 0; index < element.length; index++) {
         parseInt(element[index]) == 1
           ? (sum += 2 ** (element.length - (index + 1)))
           : (sum += 0);
+
+        if (index == until - 1) {
+          const real =
+            -3.1 + ((12.1 + 3.1) / (Math.pow(2, this.chromoSize) - 1)) * sum;
+          this.realPopulation.x.push(real);
+          sum = 0;
+        }
+
+        if (index == this.chromoSize - 1) {
+          const real =
+            4.1 + ((5.8 - 4.1) / (Math.pow(2, this.chromoSize) - 1)) * sum;
+          this.realPopulation.y.push(real);
+          sum = 0;
+        }
       }
-      this.realPopulation.push(sum);
-      sum = 0;
     });
+
+    console.log(this.realPopulation);
 
     return this.realPopulation;
   }
 
-  resultFunction(resultRealPopulation: number[]) {
-    resultRealPopulation.forEach((element) => {
-      this.fx.push(element * element);
-      this.totalFx += element * element;
-    });
+  resultFunction(resultRealPopulation: any) {
+    for (let index = 0; index < this.popSize; index++) {
+      this.fx.push(
+        15 +
+          resultRealPopulation.x[index] *
+            Math.cos(2 * Math.PI * resultRealPopulation.x[index]) +
+          resultRealPopulation.y[index] *
+            Math.cos(14 * Math.PI * resultRealPopulation.y[index])
+      );
+
+      this.totalFx +=
+        15 +
+        resultRealPopulation.x[index] *
+          Math.cos(2 * Math.PI * resultRealPopulation.x[index]) +
+        resultRealPopulation.y[index] *
+          Math.cos(14 * Math.PI * resultRealPopulation.y[index]);
+    }
+
+    // resultRealPopulation.forEach((element) => {
+    //   this.fx.push(element * element);
+    //   this.totalFx += element * element;
+    // });
 
     return this.fx;
   }
 
   calcScales(resultFx: number[]) {
-    console.log(this.totalFx);
-
     resultFx.forEach((element) => {
       this.scales.push(element / this.totalFx);
       this.scalesSorted.push(element / this.totalFx);
@@ -117,21 +160,32 @@ export class AgComponent implements OnInit {
   }
 
   setParents() {
-    let father1: { binary: string; index: number } = this.selectParents();
+    if (this.method == Method.ROULETTE) {
+      let father1: { binary: string; index: number } =
+        this.selectParentsByRoulette();
 
-    let father2: { binary: string; index: number } = this.selectParents();
+      let father2: { binary: string; index: number } =
+        this.selectParentsByRoulette();
 
-    while (father1.binary == father2.binary) {
-      father2 = this.selectParents();
+      while (father1.binary == father2.binary) {
+        father2 = this.selectParentsByRoulette();
+      }
+
+      console.log(father1, father2);
+
+      return { father1, father2 };
+    } else {
+      const parents = this.selectParentsBySortition();
+      let father1: { binary: string; index: number } = parents[0];
+      let father2: { binary: string; index: number } = parents[1];
+
+      console.log(father1, father2);
+
+      return { father1, father2 };
     }
-
-    return { father1, father2 };
   }
 
-  selectParents(): { binary: string; index: number } {
-    //sorteio
-    if ((this.method = Method.ROULETTE)) {
-    }
+  selectParentsByRoulette(): { binary: string; index: number } {
     const randomNumber = Math.random();
     let scaleSelected: number = -1;
     let hasOneBigger: boolean = false;
@@ -154,6 +208,60 @@ export class AgComponent implements OnInit {
       const index = this.scales.indexOf(scaleSelected);
       return { binary, index };
     }
+  }
+
+  selectParentsBySortition() {
+    let sortitionIndividuals: number[] = [];
+    let i = 0;
+    while (i < this.popSize / 2) {
+      let randomNumber = this.getRandomArbitrary(0, this.popSize);
+
+      const numberExists = sortitionIndividuals.find((element) => {
+        return element == randomNumber;
+      });
+
+      if (!numberExists) {
+        sortitionIndividuals.push(randomNumber);
+        i++;
+      }
+    }
+
+    // console.log(sortitionIndividuals);
+
+    let kIndividualsScales = [];
+    for (let index = 0; index < sortitionIndividuals.length; index++) {
+      kIndividualsScales.push(this.scales[sortitionIndividuals[index]]);
+    }
+    console.log(this.binaryPopulation);
+
+    console.log('scalas', this.scales);
+
+    console.log('k', kIndividualsScales);
+
+    const greatestScale1 = this.discoverGreatest(kIndividualsScales);
+
+    const greatestScale2 = this.discoverGreatest(
+      this.removeElement(
+        kIndividualsScales,
+        kIndividualsScales.indexOf(greatestScale1)
+      )
+    );
+
+    const binary = this.binaryPopulation[this.scales.indexOf(greatestScale1)];
+    console.log(binary);
+    const index = this.scales.indexOf(greatestScale1);
+    const binary2 = this.binaryPopulation[this.scales.indexOf(greatestScale2)];
+    console.log(binary2);
+    const index2 = this.scales.indexOf(greatestScale2);
+    this.method = 2;
+    const parents: any = [
+      {
+        binary: binary,
+        index: index,
+      },
+      { binary: binary2, index: index2 },
+    ];
+    return parents;
   }
 
   crossOp(
@@ -228,18 +336,34 @@ export class AgComponent implements OnInit {
     this.generations.fxs.push(fx);
     this.generations.scales.push(scales);
 
-    this.realPopulation = [];
+    this.realPopulation.x = [];
+    this.realPopulation.y = [];
     this.fx = [];
     this.totalFx = 0;
     this.scales = [];
     this.scalesSorted = [];
 
-    this.generations.scales.forEach((element: any) => {
-      console.log(element);
-    });
+    this.generations.scales.forEach((element: any) => {});
   }
 
   discoverSmallest(array: number[]) {
     return Math.min.apply(Math, array);
+  }
+
+  discoverGreatest(array: number[]) {
+    return Math.max.apply(Math, array);
+  }
+
+  getRandomArbitrary(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min) + min);
+  }
+
+  removeElement(array: number[], elem: number) {
+    var index = array.indexOf(elem);
+    if (index > -1) {
+      array.splice(index, 1);
+    }
+
+    return array;
   }
 }

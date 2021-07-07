@@ -38,6 +38,7 @@
           placeholder="Quantidade de gerações"
           [(ngModel)]="countGenerations"
         />
+
         <label for="">
           <input
             type="radio"
@@ -58,8 +59,8 @@
           />
           <span>Sorteio</span>
         </label>
-        <button type="submit" (click)="runAg()">Executar AG</button>
       </form>
+      <button type="button" (click)="runAg()">Executar AG</button>
     </div>
   </div>
   <div
@@ -80,23 +81,23 @@
         {{ item }}
       </div>
     </div>
-    <div>
+    <!-- <div>
       <label for="">Binário p/ real</label>
       <div *ngFor="let item of generations.realPopulations">
         {{ item }}
       </div>
-    </div>
+    </div> -->
     <div>
       <label for="">F(x)</label>
       <div *ngFor="let item of generations.fxs">
         {{ item }}
       </div>
     </div>
-    <div>
+    <!-- <div>
       <label for="">Escala de aptidão</label>
       <div *ngFor="let item of generations.scales">
         {{ item }}
       </div>
-    </div>
+    </div> -->
   </div>
 </div>

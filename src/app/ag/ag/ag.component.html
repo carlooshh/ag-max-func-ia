@@ -77,7 +77,7 @@
     </div>
     <div>
       <label for="">população(individuos) </label>
-      <div *ngFor="let item of generations.binaryPopulations; let i = index">
+      <div *ngFor="let item of generations.fxs; let i = index">
         {{ item }}
       </div>
     </div>
@@ -90,7 +90,7 @@
     <div>
       <label for="">F(x)</label>
       <div *ngFor="let item of generations.fxs">
-        {{ item }}
+        {{ discoverGreatest(item) }}
       </div>
     </div>
     <!-- <div>

@@ -22,7 +22,9 @@ export class AgComponent implements OnInit {
     y: [],
   };
   fx: number[] = [];
+  // calculo de aptidao
   totalFx: number = 0;
+
   scales: number[] = [];
   scalesSorted: number[] = [];
   generations: any = {
@@ -31,7 +33,6 @@ export class AgComponent implements OnInit {
     fxs: [],
     scales: [],
   };
-  newPopulation: string[] = [];
   constructor() {}
 
   ngOnInit(): void {}
@@ -41,26 +42,33 @@ export class AgComponent implements OnInit {
   }
 
   runAg() {
+    //1
     this.binaryPopulation = this.generateRamdomPop();
-    console.log(this.binaryPopulation);
 
     for (let index = 0; index < this.countGenerations; index++) {
+      //2
       const resultRealPopulation = this.convertBinaryToReal(
         this.binaryPopulation
       );
+      //3
       const resultFx = this.resultFunction(resultRealPopulation);
+      //4
       const resultscales = this.calcScales(resultFx);
 
+      //5
       const resultParents = this.setParents();
+      //6
       const resultCrossOp = this.crossOp(
         resultParents.father1,
         resultParents.father2
       );
+      //7
       const resultMutationOp = this.mutationOp(
         resultCrossOp.son1,
         resultCrossOp.son2
       );
 
+      //8
       this.replacePopulation(
         resultMutationOp.son1,
         resultParents.father1.index,
@@ -95,7 +103,6 @@ export class AgComponent implements OnInit {
       until = (this.chromoSize - 1) / 2;
     }
 
-    let contX = 0;
     let sum: number = 0;
     resultBinaryPopulation.forEach((element) => {
       for (let index = 0; index < element.length; index++) {
@@ -119,8 +126,6 @@ export class AgComponent implements OnInit {
       }
     });
 
-    console.log(this.realPopulation);
-
     return this.realPopulation;
   }
 
@@ -141,11 +146,6 @@ export class AgComponent implements OnInit {
         resultRealPopulation.y[index] *
           Math.cos(14 * Math.PI * resultRealPopulation.y[index]);
     }
-
-    // resultRealPopulation.forEach((element) => {
-    //   this.fx.push(element * element);
-    //   this.totalFx += element * element;
-    // });
 
     return this.fx;
   }
@@ -171,15 +171,11 @@ export class AgComponent implements OnInit {
         father2 = this.selectParentsByRoulette();
       }
 
-      console.log(father1, father2);
-
       return { father1, father2 };
     } else {
       const parents = this.selectParentsBySortition();
       let father1: { binary: string; index: number } = parents[0];
       let father2: { binary: string; index: number } = parents[1];
-
-      console.log(father1, father2);
 
       return { father1, father2 };
     }
@@ -232,11 +228,6 @@ export class AgComponent implements OnInit {
     for (let index = 0; index < sortitionIndividuals.length; index++) {
       kIndividualsScales.push(this.scales[sortitionIndividuals[index]]);
     }
-    console.log(this.binaryPopulation);
-
-    console.log('scalas', this.scales);
-
-    console.log('k', kIndividualsScales);
 
     const greatestScale1 = this.discoverGreatest(kIndividualsScales);
 
@@ -248,10 +239,8 @@ export class AgComponent implements OnInit {
     );
 
     const binary = this.binaryPopulation[this.scales.indexOf(greatestScale1)];
-    console.log(binary);
     const index = this.scales.indexOf(greatestScale1);
     const binary2 = this.binaryPopulation[this.scales.indexOf(greatestScale2)];
-    console.log(binary2);
     const index2 = this.scales.indexOf(greatestScale2);
     this.method = 2;
     const parents: any = [
@@ -268,15 +257,22 @@ export class AgComponent implements OnInit {
     father1: { binary: string; index: number },
     father2: { binary: string; index: number }
   ) {
-    const cut = Math.floor(Math.random() * 1 + (this.chromoSize - 2));
+    let son1 = '';
+    let son2 = '';
+    if (this.probCrossing > Math.random()) {
+      const cut = Math.floor(Math.random() * 1 + (this.chromoSize - 2));
 
-    const gene11 = father1.binary.substring(0, cut);
-    const gene12 = father1.binary.substring(cut, father1.binary.length);
-    const gene21 = father2.binary.substring(0, cut);
-    const gene22 = father2.binary.substring(cut, father2.binary.length);
+      const gene11 = father1.binary.substring(0, cut);
+      const gene12 = father1.binary.substring(cut, father1.binary.length);
+      const gene21 = father2.binary.substring(0, cut);
+      const gene22 = father2.binary.substring(cut, father2.binary.length);
 
-    const son1 = gene11 + gene22;
-    const son2 = gene21 + gene12;
+      son1 = gene11 + gene22;
+      son2 = gene21 + gene12;
+    } else {
+      son1 = father1.binary;
+      son2 = father1.binary;
+    }
 
     return { son1, son2 };
   }
@@ -333,7 +329,12 @@ export class AgComponent implements OnInit {
   addToGeneration(realPopulation: number[], fx: number[], scales: number[]) {
     this.generations.binaryPopulations.push(this.binaryPopulation);
     this.generations.realPopulations.push(realPopulation);
-    this.generations.fxs.push(fx);
+
+    let fxRound = fx.map((element) => {
+      return element.toFixed(2);
+    });
+
+    this.generations.fxs.push(fxRound);
     this.generations.scales.push(scales);
 
     this.realPopulation.x = [];
